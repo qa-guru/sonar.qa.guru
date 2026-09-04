@@ -1,0 +1,7 @@
+# Prod override — restart policy (DOCKER-CANON § multi-file)
+# Publish: bind nginx → 127.0.0.1:9000 (set SONAR_HTTP_PORT or override ports in deploy repo).
+services:
+  postgres:
+    restart: unless-stopped
+  sonarqube:
+    restart: unless-stopped

@@ -1,0 +1,54 @@
+# SonarQube Community Build + Postgres — sonar.qa.guru
+# Pin: Community Build 26.7 (not lts-community — 9.9 EOL banner).
+# Fresh install OK on 26.7; upgrade from 9.9 must hop: 24.12 → 26.1 → 26.4 → 26.7.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-sonar}
+      POSTGRES_USER: ${POSTGRES_USER:-sonar}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - sonar_pgdata:/var/lib/postgresql/data
+    networks:
+      - sonar_internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  sonarqube:
+    image: sonarqube:26.7.0.124771-community
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-sonar}
+      SONAR_JDBC_USERNAME: ${POSTGRES_USER:-sonar}
+      SONAR_JDBC_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: ${SONAR_ES_BOOTSTRAP_CHECKS_DISABLE:-false}
+    ports:
+      - "127.0.0.1:${SONAR_HTTP_PORT:-9000}:9000"
+    volumes:
+      - sonar_data:/opt/sonarqube/data
+      - sonar_extensions:/opt/sonarqube/extensions
+      - sonar_logs:/opt/sonarqube/logs
+    networks:
+      - sonar_internal
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+
+networks:
+  sonar_internal:
+    driver: bridge
+
+volumes:
+  sonar_pgdata:
+  sonar_data:
+  sonar_extensions:
+  sonar_logs:

@@ -1,0 +1,5 @@
+.env
+*.log
+admin.env
+ci-token
+admin-token
