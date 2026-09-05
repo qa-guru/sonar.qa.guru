@@ -11,6 +11,7 @@ Production **SonarQube Community Build** on Box 2 — **https://sonar.qa.guru**
 | Host | Box 2 `89.248.193.83` — рядом Jenkins, Grafana, Ollama; **не** Box 3 |
 | Path | `/opt/sonar.qa.guru` |
 | Stack | Docker Compose: SonarQube + Postgres 16 (Postgres без publish) |
+| Auth | SAML → [auth.qa.guru](https://auth.qa.guru) (P2b). Локальный `admin` — break-glass |
 | CI | `SONAR_TOKEN` — env / GH secret, никогда в argv |
 
 ## Для учащихся
