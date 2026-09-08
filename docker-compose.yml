@@ -30,6 +30,8 @@ services:
       SONAR_JDBC_USERNAME: ${POSTGRES_USER:-sonar}
       SONAR_JDBC_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
       SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: ${SONAR_ES_BOOTSTRAP_CHECKS_DISABLE:-false}
+      # Official: do not send instance telemetry to telemetry.sonarsource.com
+      SONAR_TELEMETRY_ENABLE: "false"
     ports:
       - "127.0.0.1:${SONAR_HTTP_PORT:-9000}:9000"
     volumes:

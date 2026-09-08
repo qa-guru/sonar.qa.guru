@@ -1,5 +1,11 @@
 # SSOT public URL: https://sonar.qa.guru
 # Upstream: SonarQube compose on Box2 loopback :9000.
+#
+# Community Build has no flag for the Beamer product-news widget (hardcoded in
+# /js/startReactApp-*.js). Rewrite those calls to a same-origin stub so the
+# browser never talks to api.getbeamer.com (CORS + user id leak).
+# SPA bootstrap on "/" without JWT throws "Application failed to start" (401s);
+# send anonymous "/" to /sessions/new instead (logout lands on "/").
 
 server {
     listen 80;
@@ -33,6 +39,49 @@ server {
 
     access_log /var/log/nginx/sonar.qa.guru.access.log;
     error_log  /var/log/nginx/sonar.qa.guru.error.log;
+
+    location = /__no-beamer/v0/unread/count {
+        default_type application/json;
+        add_header Cache-Control "no-store";
+        return 200 '{"count":0}';
+    }
+
+    location ^~ /__no-beamer/ {
+        default_type application/json;
+        add_header Cache-Control "no-store";
+        return 200 '[]';
+    }
+
+    location ^~ /js/ {
+        include /etc/nginx/proxy_params;
+        proxy_pass http://127.0.0.1:9000;
+        proxy_http_version 1.1;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-Port $server_port;
+        proxy_set_header Accept-Encoding "";
+        proxy_buffering on;
+        proxy_hide_header Cache-Control;
+        proxy_hide_header ETag;
+        add_header Cache-Control "public, max-age=300";
+        sub_filter 'https://api.getbeamer.com' 'https://sonar.qa.guru/__no-beamer';
+        sub_filter_once off;
+        sub_filter_types application/javascript text/javascript;
+    }
+
+    location = / {
+        # $cookie_JWT_SESSION does not see hyphenated JWT-SESSION (nginx 1.24).
+        if ($http_cookie !~* "JWT-SESSION=[^;]+") {
+            return 302 /sessions/new;
+        }
+        include /etc/nginx/proxy_params;
+        proxy_pass http://127.0.0.1:9000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-Port $server_port;
+        proxy_buffering off;
+    }
 
     location / {
         include /etc/nginx/proxy_params;
